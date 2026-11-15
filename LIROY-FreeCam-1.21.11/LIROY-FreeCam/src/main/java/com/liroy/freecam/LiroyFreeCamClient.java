@@ -64,7 +64,7 @@ public class LiroyFreeCamClient implements ClientModInitializer {
                 cameraYaw = client.player.getYaw();
                 cameraPitch = client.player.getPitch();
 
-                lockedPlayerPos = client.player.getPos();
+                lockedPlayerPos = new Vec3d(client.player.getX(), client.player.getY(), client.player.getZ());
                 lockedPlayerYaw = client.player.getYaw();
                 lockedPlayerPitch = client.player.getPitch();
             } else {
@@ -85,25 +85,22 @@ public class LiroyFreeCamClient implements ClientModInitializer {
 
         client.player.setYaw(lockedPlayerYaw);
         client.player.setPitch(lockedPlayerPitch);
-        client.player.prevYaw = lockedPlayerYaw;
-        client.player.prevPitch = lockedPlayerPitch;
 
         // נעילת השחקן במקום כדי שלא יזוז בזמן שמטיסים את המצלמה
         client.player.setPosition(lockedPlayerPos);
         client.player.setVelocity(Vec3d.ZERO);
 
-        // שמירת המיקום הקודם של המצלמה לצורך תנועה חלקה (Interpolation)
+        // שמירת המיקום הקודם של המצלמה לצורך תנועה חלקה
         prevCameraPos = cameraPos;
 
         Vec3d look = getLookVector(cameraYaw, cameraPitch);
         Vec3d right = new Vec3d(-look.z, 0.0, look.x).normalize();
         Vec3d movement = Vec3d.ZERO;
 
-        long window = client.getWindow().getHandle();
-        if (InputUtil.isKeyPressed(window, GLFW.GLFW_KEY_W)) movement = movement.add(look.x, 0, look.z);
-        if (InputUtil.isKeyPressed(window, GLFW.GLFW_KEY_S)) movement = movement.add(-look.x, 0, -look.z);
-        if (InputUtil.isKeyPressed(window, GLFW.GLFW_KEY_A)) movement = movement.add(-right.x, 0, -right.z);
-        if (InputUtil.isKeyPressed(window, GLFW.GLFW_KEY_D)) movement = movement.add(right.x, 0, right.z);
+        if (InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_W)) movement = movement.add(look.x, 0, look.z);
+        if (InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_S)) movement = movement.add(-look.x, 0, -look.z);
+        if (InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_A)) movement = movement.add(-right.x, 0, -right.z);
+        if (InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_D)) movement = movement.add(right.x, 0, right.z);
         if (upKey.isPressed()) movement = movement.add(0, 1, 0);
         if (downKey.isPressed()) movement = movement.add(0, -1, 0);
 
