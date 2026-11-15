@@ -20,9 +20,14 @@ public class LiroyFreeCamClient implements ClientModInitializer {
     private static KeyBinding speedKey;
 
     private static boolean enabled = false;
+    private static Vec3d prevCameraPos = Vec3d.ZERO;
     private static Vec3d cameraPos = Vec3d.ZERO;
     private static float cameraYaw;
     private static float cameraPitch;
+
+    private static Vec3d lockedPlayerPos = Vec3d.ZERO;
+    private static float lockedPlayerYaw;
+    private static float lockedPlayerPitch;
 
     @Override
     public void onInitializeClient() {
@@ -55,8 +60,16 @@ public class LiroyFreeCamClient implements ClientModInitializer {
             enabled = !enabled;
             if (enabled) {
                 cameraPos = client.player.getCameraPosVec(1.0F);
+                prevCameraPos = cameraPos;
                 cameraYaw = client.player.getYaw();
                 cameraPitch = client.player.getPitch();
+
+                lockedPlayerPos = client.player.getPos();
+                lockedPlayerYaw = client.player.getYaw();
+                lockedPlayerPitch = client.player.getPitch();
+            } else {
+                client.player.setYaw(lockedPlayerYaw);
+                client.player.setPitch(lockedPlayerPitch);
             }
         }
 
@@ -64,24 +77,40 @@ public class LiroyFreeCamClient implements ClientModInitializer {
             return;
         }
 
+        // קריאת סיבוב העכבר למצלמה, והחזרת ראש השחקן למקום הנעול
+        float yawDelta = client.player.getYaw() - lockedPlayerYaw;
+        float pitchDelta = client.player.getPitch() - lockedPlayerPitch;
+        cameraYaw += yawDelta;
+        cameraPitch = MathHelper.clamp(cameraPitch + pitchDelta, -90.0F, 90.0F);
+
+        client.player.setYaw(lockedPlayerYaw);
+        client.player.setPitch(lockedPlayerPitch);
+        client.player.prevYaw = lockedPlayerYaw;
+        client.player.prevPitch = lockedPlayerPitch;
+
+        // נעילת השחקן במקום כדי שלא יזוז בזמן שמטיסים את המצלמה
+        client.player.setPosition(lockedPlayerPos);
+        client.player.setVelocity(Vec3d.ZERO);
+
+        // שמירת המיקום הקודם של המצלמה לצורך תנועה חלקה (Interpolation)
+        prevCameraPos = cameraPos;
+
         Vec3d look = getLookVector(cameraYaw, cameraPitch);
         Vec3d right = new Vec3d(-look.z, 0.0, look.x).normalize();
         Vec3d movement = Vec3d.ZERO;
 
-        if (client.options.forwardKey.isPressed()) movement = movement.add(look.x, 0, look.z);
-        if (client.options.backKey.isPressed()) movement = movement.add(-look.x, 0, -look.z);
-        if (client.options.leftKey.isPressed()) movement = movement.add(-right.x, 0, -right.z);
-        if (client.options.rightKey.isPressed()) movement = movement.add(right.x, 0, right.z);
+        long window = client.getWindow().getHandle();
+        if (InputUtil.isKeyPressed(window, GLFW.GLFW_KEY_W)) movement = movement.add(look.x, 0, look.z);
+        if (InputUtil.isKeyPressed(window, GLFW.GLFW_KEY_S)) movement = movement.add(-look.x, 0, -look.z);
+        if (InputUtil.isKeyPressed(window, GLFW.GLFW_KEY_A)) movement = movement.add(-right.x, 0, -right.z);
+        if (InputUtil.isKeyPressed(window, GLFW.GLFW_KEY_D)) movement = movement.add(right.x, 0, right.z);
         if (upKey.isPressed()) movement = movement.add(0, 1, 0);
         if (downKey.isPressed()) movement = movement.add(0, -1, 0);
 
         if (movement.lengthSquared() > 0) {
-            double speed = speedKey.isPressed() ? 1.2 : 0.35;
+            double speed = speedKey.isPressed() ? 1.5 : 0.45;
             cameraPos = cameraPos.add(movement.normalize().multiply(speed));
         }
-
-        cameraYaw = client.player.getYaw();
-        cameraPitch = MathHelper.clamp(client.player.getPitch(), -90.0F, 90.0F);
     }
 
     private static Vec3d getLookVector(float yaw, float pitch) {
@@ -99,8 +128,8 @@ public class LiroyFreeCamClient implements ClientModInitializer {
         return enabled;
     }
 
-    public static Vec3d getCameraPos() {
-        return cameraPos;
+    public static Vec3d getSmoothCameraPos(float tickDelta) {
+        return prevCameraPos.lerp(cameraPos, tickDelta);
     }
 
     public static float getCameraYaw() {
