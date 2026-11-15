@@ -8,9 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: LIROY-FreeCam-1.21.11/LIROY-FreeCam
 
     steps:
     - uses: actions/checkout@v4
@@ -19,12 +16,19 @@ jobs:
       with:
         java-version: '21'
         distribution: 'temurin'
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-    - name: Build with Gradle
-      run: ./gradlew build
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: '8.10.2'
+    - name: Build Mod
+      run: |
+        BUILD_FILE=$(find . -name "build.gradle" -o -name "build.gradle.kts" | head -n 1)
+        PROJECT_DIR=$(dirname "$BUILD_FILE")
+        echo "Building in directory: $PROJECT_DIR"
+        cd "$PROJECT_DIR"
+        gradle build
     - name: Upload JAR
       uses: actions/upload-artifact@v4
       with:
         name: LIROY-FreeCam-JAR
-        path: LIROY-FreeCam-1.21.11/LIROY-FreeCam/build/libs/*.jar
+        path: "**/build/libs/*.jar"
