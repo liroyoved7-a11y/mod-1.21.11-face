@@ -6,11 +6,14 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.lwjgl.glfw.GLFW;
 
 public class LiroyFreeCamClient implements ClientModInitializer {
+    private static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of("liroy_freecam", "general"));
+
     private static KeyBinding toggleKey;
     private static KeyBinding upKey;
     private static KeyBinding downKey;
@@ -25,19 +28,19 @@ public class LiroyFreeCamClient implements ClientModInitializer {
     public void onInitializeClient() {
         toggleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.liroy_freecam.toggle", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT,
-                "category.liroy_freecam"
+                CATEGORY
         ));
         upKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.liroy_freecam.up", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_SPACE,
-                "category.liroy_freecam"
+                CATEGORY
         ));
         downKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.liroy_freecam.down", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_CONTROL,
-                "category.liroy_freecam"
+                CATEGORY
         ));
         speedKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.liroy_freecam.speed", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT,
-                "category.liroy_freecam"
+                CATEGORY
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(LiroyFreeCamClient::tick);
@@ -61,8 +64,6 @@ public class LiroyFreeCamClient implements ClientModInitializer {
             return;
         }
 
-        // Keep the player's body at its starting point while the detached camera moves.
-        // This is a visual/client-side camera only; it does not teleport the player.
         Vec3d look = getLookVector(cameraYaw, cameraPitch);
         Vec3d right = new Vec3d(-look.z, 0.0, look.x).normalize();
         Vec3d movement = Vec3d.ZERO;
@@ -79,8 +80,6 @@ public class LiroyFreeCamClient implements ClientModInitializer {
             cameraPos = cameraPos.add(movement.normalize().multiply(speed));
         }
 
-        // Mouse look is read from the player view in this first version.
-        // Camera position remains detached from the player.
         cameraYaw = client.player.getYaw();
         cameraPitch = MathHelper.clamp(client.player.getPitch(), -90.0F, 90.0F);
     }
